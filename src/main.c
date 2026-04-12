@@ -1,30 +1,79 @@
-
-#define SIM_SCGC5 (*((volatile unsigned int*)0x40048038))
-#define GPIOB_PDDR (*((volatile unsigned int*)0x400FF054))
-#define PORTB_PCR19 (*((volatile unsigned int*)0x4004A04C))
-#define GPIOB_PTOR (*((volatile unsigned int*)0x400FF04C))
+#include <zephyr/kernel.h>
+#include <zephyr/device.h>
+#include <zephyr/drivers/gpio.h>
 
 
-void delayMs (int n) {
-  volatile int i; 
-  volatile int j; 
-  for (i = 0; i < n; i++) 
-    for (j = 0; j < 4000; j++) {} // tive que mudar o valor máximo de j para dar um Ms
-}
+#define Tempo 1000
+#define VM gpio_pin_get_dt(&Led2)
+#define VD gpio_pin_get_dt(&Led0)
 
-int main (void) {
-  void delayMs(int n);
-  SIM_SCGC5|= (1<<10);  // habilita o clock da porta B
-  GPIOB_PDDR|= (1<<19);  // pin é configurado para output para a função gpio
-  PORTB_PCR19|= (1<<8); // GPIO (001)
-  PORTB_PCR19&= ~(1<<9); //  GPIO (001)
-  PORTB_PCR19&= ~(1<<10); //GPIO (001) ->and com …111101111…
-  int n= 1000, a=3;
-  int i, j;
-  while (a==3) {
-	GPIOB_PTOR|= (1<<19);
-    delayMs(1000);
-    GPIOB_PTOR&= ~(1<<19);
-	delayMs(1000);
-  }
+#define LED0_NODE DT_ALIAS(led0)
+#define LED2_NODE DT_ALIAS(led2)
+
+
+// Verifica se o LED está definido no Device Tree
+#if DT_NODE_HAS_STATUS(LED0_NODE, okay)
+static const struct gpio_dt_spec Led0= GPIO_DT_SPEC_GET(LED0_NODE, gpios);
+#else
+#error "Unsupported board: led0 devicetree alias is not defined"
+#endif
+
+
+#if DT_NODE_HAS_STATUS(LED2_NODE, okay)
+static const struct gpio_dt_spec Led2=GPIO_DT_SPEC_GET(LED2_NODE, gpios);
+#else
+#error "Unsupported board: led0 devicetree alias is not defined"
+#endif
+
+
+void main(void)
+{
+    int ret;
+
+
+    if (!gpio_is_ready_dt(&Led0)) {
+        printk("Error: LED device %s is not ready\n", Led0.port->name);
+        return;
+    }
+    if (!gpio_is_ready_dt(&Led2)) {
+        printk("Error: LED device %s is not ready\n", Led2.port->name);
+        return;
+    }
+
+
+    // Configura o pino como saída
+    ret = gpio_pin_configure_dt(&Led0, GPIO_OUTPUT_ACTIVE);
+    if (ret < 0) {
+        printk("Error %d: failed to configure LED pin\n", ret);
+        return;
+    }
+    ret = gpio_pin_configure_dt(&Led2, GPIO_OUTPUT_ACTIVE);
+    if (ret < 0) {
+        printk("Error %d: failed to configure LED pin\n", ret);
+        return;
+    }
+    printk("LED blinking on %s pin %d\n", Led2.port->name, Led2.pin);
+    gpio_pin_set_dt(&Led2, 0);  
+    
+    int verde, vermelho, amarelo;
+    int estado=verde;
+
+    while (1) {
+        if(estado==verde) {
+            k_msleep(3*Tempo);
+            gpio_pin_set_dt(&Led2, 1);
+            estado=amarelo;
+        }
+        if(estado==amarelo) {
+            k_msleep(Tempo);
+            gpio_pin_set_dt(&Led0, 0);
+            estado=vermelho;
+        }
+        if(estado==vermelho) {
+            k_msleep(4*Tempo);
+            gpio_pin_set_dt(&Led0, 1);
+            gpio_pin_set_dt(&Led2, 0);
+            estado=verde;
+        }
+    }
 }
