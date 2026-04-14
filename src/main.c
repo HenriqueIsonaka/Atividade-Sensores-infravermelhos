@@ -9,6 +9,7 @@
 // Valores de duty cycle correspondentes a diferentes larguras de pulso
 uint16_t duty_50  = TPM_MODULE/2;   // 50% de duty cycle (meio brilho)
 uint16_t duty_10  = TPM_MODULE/10; 
+uint16_t duty_100  = TPM_MODULE/1;
 
 int main(void)
 {
@@ -25,16 +26,18 @@ int main(void)
     // - modo TPM_PWM_H (nível alto durante o pulso)
     pwm_tpm_Ch_Init(TPM2, 0, TPM_PWM_H, GPIOB, 18);
     pwm_tpm_Ch_Init(TPM2, 1, TPM_PWM_H, GPIOB, 19);
-
     // Define o valor do duty cycle: nesse caso, duty_100 (LED quase desligado)
     pwm_tpm_CnV(TPM2, 0, duty_10);
     pwm_tpm_CnV(TPM2, 1, duty_50);
 
     // Loop infinito
-    for (;;)
-    {
-        // O programa poderia alterar o duty cycle dinamicamente aqui se desejado
+    for(;;) {
+        k_msleep(1000);
+        pwm_tpm_CnV(TPM2, 0, duty_10);
+        pwm_tpm_CnV(TPM2, 1, duty_50);
+        k_msleep(1000);
+        pwm_tpm_CnV(TPM2, 0, duty_100);
+        pwm_tpm_CnV(TPM2, 1, duty_100);
     }
-
     return 0;
 }
