@@ -45,8 +45,10 @@ int main(void)
         pwm_tpm_CnV(TPM2, 1, vel_100);
         k_msleep(4000);
         pwm_tpm_CnV(TPM1, 0, vel_25);
+        pwm_tpm_CnV(TPM2, 1, vel_25);
         k_msleep(4000);
         pwm_tpm_CnV(TPM1, 0, vel_10);
+        pwm_tpm_CnV(TPM2, 1, vel_10);
         k_msleep(4000);
     }
     return 0;
